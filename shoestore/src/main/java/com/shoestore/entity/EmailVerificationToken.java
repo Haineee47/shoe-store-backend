@@ -1,18 +1,16 @@
 package com.shoestore.entity;
 
-import com.shoestore.entity.base.BaseEntity;
 import jakarta.persistence.*;
-
 import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "refresh_tokens",
+        name = "email_verification_tokens",
         indexes = {
                 @Index(
-                        name = "idx_refresh_token",
+                        name = "idx_email_verification_token",
                         columnList = "token"
                 )
         }
@@ -22,7 +20,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RefreshToken extends BaseEntity {
+public class EmailVerificationToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,7 +29,7 @@ public class RefreshToken extends BaseEntity {
     @Column(
             nullable = false,
             unique = true,
-            length = 500
+            length = 255
     )
     private String token;
 
@@ -40,12 +38,13 @@ public class RefreshToken extends BaseEntity {
 
     @Builder.Default
     @Column(nullable = false)
-    private Boolean revoked = false;
+    private Boolean used = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "user_id",
-            nullable = false
+            nullable = false,
+            unique = true
     )
     private User user;
 }
