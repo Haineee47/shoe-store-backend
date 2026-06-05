@@ -76,14 +76,16 @@ public class SecurityConfig {
                                 "/api/v1/auth/refresh",
                                 "/api/v1/auth/forgot-password",
                                 "/api/v1/auth/reset-password",
-                                "/api/v1/auth/resend-verification"
+                                "/api/v1/auth/resend-verification",
+                                "/api/v1/categories/**"
                         ).permitAll()
 
                         // 🌟 2. Các API Auth nhạy cảm dưới đây BẮT BUỘC phải đăng nhập mới được gọi
                         .requestMatchers(
                                 "/api/v1/auth/change-password",
                                 "/api/v1/auth/me",
-                                "/api/v1/auth/logout"
+                                "/api/v1/auth/logout",
+                                "/api/v1/admin/categories/**"
                         ).authenticated()
 
                         .requestMatchers("/error", "/swagger-ui/**", "/v3/api-docs/**").permitAll()

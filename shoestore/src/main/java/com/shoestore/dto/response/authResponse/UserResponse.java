@@ -1,4 +1,4 @@
-package com.shoestore.dto.response;
+package com.shoestore.dto.response.authResponse;
 
 import lombok.*;
 import java.util.Set;

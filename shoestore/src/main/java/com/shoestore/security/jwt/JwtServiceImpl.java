@@ -3,6 +3,7 @@ package com.shoestore.security.jwt;
 import com.shoestore.config.JwtProperties;
 import com.shoestore.entity.User;
 
+import com.shoestore.security.user.UserPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -27,21 +28,22 @@ public class JwtServiceImpl implements JwtService {
     private final JwtProperties jwtProperties;
 
     @Override
-    public String generateAccessToken(User user) {
+    public String generateAccessToken(UserPrincipal userPrincipal) {
 
         Map<String, Object> claims = new HashMap<>();
 
-        claims.put(
-                "roles",
-                user.getRoles()
-                        .stream()
-                        .map(role -> role.getName().name())
-                        .toList()
-        );
+        // 🌟 Lấy toàn bộ danh sách phẳng (gồm cả Role và Permission) đã được gom sẵn ở UserPrincipal
+        var authorities = userPrincipal.getAuthorities()
+                .stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .toList();
+
+        // Đẩy danh sách này vào claims với key là "authorities" (chuẩn Spring Security)
+        claims.put("authorities", authorities);
 
         return buildToken(
                 claims,
-                user.getEmail(),
+                userPrincipal.getUsername(), // userPrincipal.getUsername() chính là email của bạn
                 jwtProperties.getAccessTokenExpiration()
         );
     }

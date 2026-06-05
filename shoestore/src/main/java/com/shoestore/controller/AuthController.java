@@ -2,11 +2,10 @@ package com.shoestore.controller;
 
 import com.shoestore.common.response.ApiResponse;
 
-import com.shoestore.dto.request.*;
+import com.shoestore.dto.request.authRequest.*;
+import com.shoestore.dto.response.authResponse.AuthResponse;
 
-import com.shoestore.dto.response.AuthResponse;
-
-import com.shoestore.dto.response.UserResponse;
+import com.shoestore.dto.response.authResponse.UserResponse;
 import com.shoestore.service.AuthService;
 
 import com.shoestore.service.EmailVerificationService;

@@ -7,7 +7,7 @@ import com.google.api.client.json.gson.GsonFactory;
 
 import com.shoestore.common.enums.ErrorCode;
 import com.shoestore.config.GoogleProperties;
-import com.shoestore.dto.response.GoogleUserInfo;
+import com.shoestore.dto.response.authResponse.GoogleUserInfo;
 import com.shoestore.exception.BusinessException;
 import com.shoestore.service.GoogleAuthService;
 

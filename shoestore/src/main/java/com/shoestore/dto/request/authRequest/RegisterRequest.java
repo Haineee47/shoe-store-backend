@@ -1,4 +1,4 @@
-package com.shoestore.dto.request;
+package com.shoestore.dto.request.authRequest;
 
 import com.shoestore.validator.password.PasswordMatch;
 import jakarta.validation.constraints.Email;

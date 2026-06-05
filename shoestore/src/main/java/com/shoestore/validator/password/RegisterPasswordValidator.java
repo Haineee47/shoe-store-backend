@@ -1,6 +1,6 @@
 package com.shoestore.validator.password;
 
-import com.shoestore.dto.request.RegisterRequest;
+import com.shoestore.dto.request.authRequest.RegisterRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
