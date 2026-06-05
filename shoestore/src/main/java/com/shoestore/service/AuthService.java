@@ -1,8 +1,8 @@
 package com.shoestore.service;
 
-import com.shoestore.dto.request.*;
-import com.shoestore.dto.response.AuthResponse;
-import com.shoestore.dto.response.UserResponse;
+import com.shoestore.dto.request.authRequest.*;
+import com.shoestore.dto.response.authResponse.AuthResponse;
+import com.shoestore.dto.response.authResponse.UserResponse;
 
 public interface AuthService {
 

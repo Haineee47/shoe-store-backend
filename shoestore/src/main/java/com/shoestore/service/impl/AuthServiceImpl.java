@@ -4,10 +4,10 @@ import com.shoestore.common.enums.ErrorCode;
 import com.shoestore.common.enums.user.AuthProvider;
 import com.shoestore.common.enums.user.RoleName;
 import com.shoestore.common.enums.user.UserStatus;
-import com.shoestore.dto.request.*;
-import com.shoestore.dto.response.AuthResponse;
-import com.shoestore.dto.response.GoogleUserInfo;
-import com.shoestore.dto.response.UserResponse;
+import com.shoestore.dto.request.authRequest.*;
+import com.shoestore.dto.response.authResponse.AuthResponse;
+import com.shoestore.dto.response.authResponse.GoogleUserInfo;
+import com.shoestore.dto.response.authResponse.UserResponse;
 import com.shoestore.entity.PasswordResetToken;
 import com.shoestore.entity.RefreshToken;
 import com.shoestore.entity.Role;
@@ -90,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         // 1. Tìm user theo Email
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findWithRolesAndPermissionsByEmail(request.getEmail())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
 
         // 2. Kiểm tra các rào cản trạng thái tài khoản (Giữ nguyên thứ tự chuẩn của bạn)
@@ -127,39 +127,36 @@ public class AuthServiceImpl implements AuthService {
         // 5. Thu hồi token cũ và sinh cặp token mới
         refreshTokenService.revokeAllUserTokens(user);
 
-        String accessToken = jwtService.generateAccessToken(user);
+        com.shoestore.security.user.UserPrincipal userPrincipal = new com.shoestore.security.user.UserPrincipal(user);
+        String accessToken = jwtService.generateAccessToken(userPrincipal);
+
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
         return buildResponse(user, accessToken, refreshToken.getToken());
     }
 
     @Override
-    public AuthResponse refreshToken(
-            RefreshTokenRequest request
-    ) {
+    @Transactional
+    public AuthResponse refreshToken(RefreshTokenRequest request) {
+        // 1. Xác thực và tìm RefreshToken cũ trong DB
+        RefreshToken oldToken = refreshTokenService.verifyRefreshToken(request.getRefreshToken());
 
-        RefreshToken oldToken =
-                refreshTokenService.verifyRefreshToken(
-                        request.getRefreshToken()
-                );
+        // 🌟 2. TỐI ƯU HÓA: Nạp lại User cùng toàn bộ Roles/Permissions bằng EntityGraph
+        // Thay vì chỉ lấy đối tượng User thô (Lazy) từ oldToken.getUser()
+        User user = userRepository.findWithRolesAndPermissionsByEmail(oldToken.getUser().getEmail())
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        User user = oldToken.getUser();
+        // 3. Hủy bỏ token cũ để tránh hiện tượng replay attack
+        refreshTokenService.revokeToken(request.getRefreshToken());
 
-        refreshTokenService.revokeToken(
-                request.getRefreshToken()
-        );
+        // 4. Bọc đối tượng đầy đủ dữ liệu vào Principal để sinh Access Token mới
+        com.shoestore.security.user.UserPrincipal userPrincipal = new com.shoestore.security.user.UserPrincipal(user);
+        String accessToken = jwtService.generateAccessToken(userPrincipal);
 
-        String accessToken =
-                jwtService.generateAccessToken(user);
+        // 5. Tạo chuỗi Refresh Token mới xoay vòng
+        RefreshToken newToken = refreshTokenService.createRefreshToken(user);
 
-        RefreshToken newToken =
-                refreshTokenService.createRefreshToken(user);
-
-        return buildResponse(
-                user,
-                accessToken,
-                newToken.getToken()
-        );
+        return buildResponse(user, accessToken, newToken.getToken());
     }
 
     @Override
@@ -178,18 +175,20 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public AuthResponse googleLogin(GoogleLoginRequest request) {
-
+        // 1. Xác thực ID Token gửi từ phía Client Google lên Server
         GoogleUserInfo googleUser = googleAuthService.verifyToken(request.getIdToken());
 
         if (!Boolean.TRUE.equals(googleUser.getEmailVerified())) {
             throw new BusinessException(ErrorCode.GOOGLE_EMAIL_NOT_VERIFIED);
         }
 
-        User user = userRepository.findByEmail(googleUser.getEmail()).orElse(null);
+        // 2. Tìm kiếm sự tồn tại của User bằng email
+        User user = userRepository.findWithRolesAndPermissionsByEmail(googleUser.getEmail()).orElse(null);
 
         if (user == null) {
-            // --- LUỒNG TẠO USER MỚI (Giữ nguyên logic của bạn) ---
+            // --- LUỒNG TẠO USER MỚI ---
             Role customerRole = roleRepository.findByName(RoleName.ROLE_CUSTOMER)
                     .orElseThrow(() -> new BusinessException(ErrorCode.ROLE_NOT_FOUND));
 
@@ -205,30 +204,22 @@ public class AuthServiceImpl implements AuthService {
                     .build();
 
             user.getRoles().add(customerRole);
-            // Note: Chưa cần lưu repository ở đây, ta gom lại lưu chung ở cuối hàm cho tối ưu
-
         } else {
-            // --- LUỒNG USER ĐÃ TỒN TẠI (Xử lý các bước 4, 5, 6 ở đây) ---
-
-            // 4. Xử lý liên kết tài khoản từ LOCAL sang GOOGLE
+            // --- LUỒNG USER ĐÃ TỒN TẠI (Đồng bộ thông tin từ Google) ---
             if (user.getProvider() == AuthProvider.LOCAL) {
-                user.setEmailVerified(true); // Đánh dấu email đã xác thực vì Google đã đảm bảo
-                // user.setProvider(AuthProvider.GOOGLE); // Mở comment nếu bạn muốn chuyển hẳn tài khoản này sang dạng Google
+                user.setEmailVerified(true);
             }
 
-            // 5. Cập nhật ảnh đại diện (Avatar) từ Google nếu user chưa có avatar
             if (user.getAvatarUrl() == null) {
                 user.setAvatarUrl(googleUser.getPicture());
             }
 
-            // 6. Bổ sung providerId (Google ID) nếu tài khoản LOCAL cũ đăng nhập Google lần đầu
             if (user.getProviderId() == null) {
                 user.setProviderId(googleUser.getGoogleId());
             }
         }
 
-        // --- CÁC BƯỚC KIỂM TRA TRẠNG THÁI & LƯU LOG ĐĂNG NHẬP ---
-
+        // 3. Kiểm tra các rào cản trạng thái tài khoản
         if (Boolean.TRUE.equals(user.getAccountLocked())) {
             throw new BusinessException(ErrorCode.ACCOUNT_LOCKED);
         }
@@ -237,19 +228,26 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.ACCOUNT_DISABLED);
         }
 
-        // Cập nhật thời gian đăng nhập cuối cùng
+        // 4. Cập nhật log thời gian đăng nhập cuối cùng
         user.setLastLoginAt(LocalDateTime.now());
 
-        // Gom tất cả các thay đổi (Tạo mới hoặc Update ở trên) lưu vào DB 1 lần duy nhất
+        // 5. Lưu toàn bộ thay đổi (Tạo mới/Cập nhật) xuống DB
         user = userRepository.save(user);
 
-        // --- SINH TOKEN CHO HỆ THỐNG ---
+        // 6. Thu hồi toàn bộ JWT Token cũ của User này
         refreshTokenService.revokeAllUserTokens(user);
 
-        String accessToken = jwtService.generateAccessToken(user);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+        // 🌟 7. TỐI ƯU HÓA: Nạp lại bản ghi "Sạch và Đầy Đủ" kèm theo đồ thị quyền hạn từ DB
+        // Do luồng trên vừa lưu thực thể thô, bọc ngay vào Principal sẽ gây query rời rạc (Lazy load)
+        User fullUser = userRepository.findWithRolesAndPermissionsByEmail(user.getEmail())
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        return buildResponse(user, accessToken, refreshToken.getToken());
+        com.shoestore.security.user.UserPrincipal userPrincipal = new com.shoestore.security.user.UserPrincipal(fullUser);
+        String accessToken = jwtService.generateAccessToken(userPrincipal);
+
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(fullUser);
+
+        return buildResponse(fullUser, accessToken, refreshToken.getToken());
     }
 
     @Override

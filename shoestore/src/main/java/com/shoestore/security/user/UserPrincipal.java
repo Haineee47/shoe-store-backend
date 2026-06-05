@@ -11,6 +11,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter
@@ -24,13 +26,24 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
 
-        return user.getRoles()
-                .stream()
-                .map(Role::getName)
-                .map(Enum::name)
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toSet());
+        // 1. Nạp các Role (Ví dụ: ROLE_ADMIN, ROLE_STAFF)
+        if (user.getRoles() != null) {
+            user.getRoles().forEach(role ->
+                    authorities.add(new SimpleGrantedAuthority(role.getName().name()))
+            );
+
+            // 2. Nạp toàn bộ các Permission chi tiết thuộc về các Role đó
+            user.getRoles().stream()
+                    .filter(role -> role.getPermissions() != null) // Tránh NullPointerException
+                    .flatMap(role -> role.getPermissions().stream())
+                    .forEach(permission ->
+                            authorities.add(new SimpleGrantedAuthority(permission.getName().name()))
+                    );
+        }
+
+        return authorities;
     }
 
     @Override

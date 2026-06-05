@@ -1,4 +1,4 @@
-package com.shoestore.dto.request;
+package com.shoestore.dto.request.authRequest;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -9,8 +9,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RefreshTokenRequest {
+public class GoogleLoginRequest {
 
     @NotBlank
-    private String refreshToken;
+    private String idToken;
 }

@@ -1,6 +1,6 @@
 package com.shoestore.service;
 
-import com.shoestore.dto.response.GoogleUserInfo;
+import com.shoestore.dto.response.authResponse.GoogleUserInfo;
 
 public interface GoogleAuthService {
 

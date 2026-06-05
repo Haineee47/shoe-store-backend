@@ -1,11 +1,12 @@
 package com.shoestore.security.jwt;
 
-import com.shoestore.entity.User;
+
+import com.shoestore.security.user.UserPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 
 public interface JwtService {
 
-    String generateAccessToken(User user);
+    String generateAccessToken(UserPrincipal userPrincipal);
 
     String extractUsername(String token);
 

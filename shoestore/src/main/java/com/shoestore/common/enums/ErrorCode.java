@@ -57,6 +57,20 @@ public enum ErrorCode {
 
     UNAUTHORIZED("Unauthorize"),
 
+    CATEGORY_NAME_ALREADY_EXISTS("Category name already exists"),
+
+    CATEGORY_SLUG_ALREADY_EXISTS("Category slug already exists"),
+
+    PARENT_CATEGORY_NOT_FOUND("Parent category not found"),
+
+    CATEGORY_NOT_FOUND("Category not found"),
+
+    CATEGORY_CANNOT_BE_ITS_OWN_PARENT("Category cannot be its own parent"),
+
+    CATEGORY_HAS_CHILDREN_CANNOT_DELETE("Category has children cannot delete"),
+
+    CATEGORY_CIRCULAR_REFERENCE("Danh mục cha không hợp lệ, phát hiện vòng lặp danh mục"),
+
     INTERNAL_SERVER_ERROR("Internal server error");
 
     private final String message;

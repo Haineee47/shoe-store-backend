@@ -1,15 +1,12 @@
 package com.shoestore.entity;
 
-import com.shoestore.common.enums.user.RoleName;
+import com.shoestore.common.enums.user.PermissionName;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Entity
 @Table(
-        name = "roles",
+        name = "permissions",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = "name")
         }
@@ -20,7 +17,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(of = "name") // 🔥 BỔ SUNG DÒNG NÀY
-public class Role {
+public class Permission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,17 +25,8 @@ public class Role {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true, length = 50)
-    private RoleName name;
+    private PermissionName name;
 
     @Column(length = 255)
     private String description;
-
-    @Builder.Default
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "role_permissions",
-            joinColumns = {@JoinColumn(name = "role_id")},
-            inverseJoinColumns = {@JoinColumn(name = "permission_id")}
-    )
-    private Set<Permission> permissions = new HashSet<>();
 }

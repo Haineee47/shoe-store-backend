@@ -1,4 +1,4 @@
-package com.shoestore.dto.request;
+package com.shoestore.dto.request.authRequest;
 
 import jakarta.validation.constraints.NotBlank;
 
