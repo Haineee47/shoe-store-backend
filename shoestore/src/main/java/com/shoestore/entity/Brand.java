@@ -1,5 +1,6 @@
 package com.shoestore.entity;
 
+import com.shoestore.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 

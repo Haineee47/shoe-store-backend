@@ -1,4 +1,4 @@
-package com.shoestore.entity;
+package com.shoestore.entity.base;
 
 import jakarta.persistence.*;
 import lombok.Getter;

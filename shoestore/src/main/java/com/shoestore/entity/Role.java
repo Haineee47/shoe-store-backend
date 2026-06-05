@@ -5,7 +5,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "roles")
+@Table(
+        name = "roles",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "name")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,8 +23,13 @@ public class Role {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, unique = true)
+    @Column(
+            nullable = false,
+            unique = true,
+            length = 50
+    )
     private RoleName name;
 
+    @Column(length = 255)
     private String description;
 }
