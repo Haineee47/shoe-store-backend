@@ -9,6 +9,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -46,5 +51,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("INTERNAL_SERVER_ERROR", "An unexpected error occurred"));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Object> handleTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        // Định nghĩa cấu hình response giống hệt với format chung của dự án bạn
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", false);
+        body.put("code", "INVALID_ARGUMENT_TYPE");
+        body.put("message", String.format("Tham số '%s' nhận giá trị '%s' không đúng kiểu dữ liệu yêu cầu (Kỳ vọng: %s)",
+                ex.getName(), ex.getValue(), ex.getRequiredType().getSimpleName()));
+        body.put("data", null);
+        body.put("timestamp", LocalDateTime.now());
+
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST); // Trả về 400 Bad Request thay vì 500
     }
 }

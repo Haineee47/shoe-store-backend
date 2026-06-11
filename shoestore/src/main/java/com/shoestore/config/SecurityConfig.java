@@ -60,7 +60,8 @@ public class SecurityConfig {
                         // Nhóm API tài nguyên hiển thị phía Client (Khách vãng lai xem được)
                         .requestMatchers(
                                 "/api/v1/categories/**",
-                                "/api/v1/brands/**"       // 🌟 MỚI: Cho phép xem thương hiệu và chi tiết thương hiệu theo slug công khai
+                                "/api/v1/brands/**",       // 🌟 MỚI: Cho phép xem thương hiệu và chi tiết thương hiệu theo slug công khai
+                                "/api/v1/admin/products/**"   // 🌟 THÊM DÒNG NÀY: Bảo vệ toàn bộ endpoint quản trị sản phẩm
                         ).permitAll()
 
                         // Nhóm API tài liệu kỹ thuật & Hệ thống
