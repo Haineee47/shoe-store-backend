@@ -71,6 +71,70 @@ public enum ErrorCode {
     MEDIA_PUBLIC_ID_INVALID("Mã định danh file (Public ID) trên hệ thống Cloud không hợp lệ"),
     MEDIA_DELETE_FAILED("Không thể xóa tệp tin cũ khỏi hệ thống lưu trữ đám mây"),
 
+    SKU_STOCK_INSUFFICIENT(
+            "Số lượng tồn kho không đủ"
+    ),
+
+    PRODUCT_NAME_ALREADY_EXISTS(
+            "Tên sản phẩm đã tồn tại"
+    ),
+
+    PRODUCT_SKU_DUPLICATE_IN_REQUEST(
+            "Danh sách SKU gửi lên bị trùng mã SKU"
+    ),
+
+    PRODUCT_SKU_ALREADY_EXISTS(
+            "Mã SKU đã tồn tại trong hệ thống"
+    ),
+
+    PRODUCT_NOT_FOUND(
+            "Sản phẩm không tồn tại"
+    ),
+
+    PRODUCT_SKU_NOT_FOUND("SKU không tồn tại"),
+
+    PRODUCT_ALREADY_DELETED(
+            "Sản phẩm đã bị xóa"
+    ),
+
+    PRODUCT_IMAGE_NOT_FOUND(
+            "Hình ảnh sản phẩm không tồn tại"
+    ),
+
+    PRODUCT_VARIANT_DUPLICATE(
+            "Biến thể sản phẩm bị trùng màu sắc và kích cỡ"
+    ),
+
+    PRODUCT_HAS_NO_ACTIVE_SKU(
+            "Sản phẩm phải có ít nhất một SKU"
+    ),
+
+    PRODUCT_SKU_BELONGS_TO_OTHER_PRODUCT(
+            "SKU không thuộc sản phẩm hiện tại"
+    ),
+
+    PRODUCT_IMAGE_NOT_BELONG_TO_PRODUCT(
+            "Ảnh không thuộc sản phẩm hiện tại"
+    ),
+
+    PRODUCT_CONCURRENT_MODIFICATION(
+            "Dữ liệu sản phẩm đã được chỉnh sửa bởi người dùng khác, vui lòng tải lại trang"
+    ),
+
+    PRODUCT_SKU_CONCURRENT_MODIFICATION(
+            "SKU đã được chỉnh sửa bởi người dùng khác"
+    ),
+
+    UPLOAD_FAILED(""),
+
+    DELETE_IMAGE_FAILED(""),
+
+    FILE_EMPTY(""),
+
+    FILE_TOO_LARGE(""),
+
+    INVALID_IMAGE_TYPE(""),
+
     // ===================================================================
     // 💻 SYSTEM GLOBAL MODULE (Mã lỗi Hệ thống tổng quát)
     // ===================================================================

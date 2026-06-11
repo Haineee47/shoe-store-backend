@@ -33,6 +33,7 @@ public class RoleSeeder implements CommandLineRunner {
                 PermissionName.CATEGORY_VIEW, "Quyền xem danh mục quản trị",
                 PermissionName.CATEGORY_UPDATE, "Quyền sửa đổi thông tin danh mục",
                 PermissionName.CATEGORY_DELETE, "Quyền xóa danh mục",
+                PermissionName.PRODUCT_VIEW, "Quyền xem sản phẩm",
                 PermissionName.PRODUCT_CREATE, "Quyền tạo sản phẩm",
                 PermissionName.PRODUCT_UPDATE, "Quyền sửa sản phẩm",
                 PermissionName.PRODUCT_DELETE, "Quyền xóa sản phẩm",
