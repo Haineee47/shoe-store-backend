@@ -8,3 +8,13 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+### SECURITY CREDENTIALS ###
+# Chặn file .env ở bất kỳ đâu trong dự án
+.env
+**/.env
+shoestore/.env
+
+### VS CODE / CURSOR CONFIGS ###
+# Đảm bảo chặn toàn bộ thư mục cấu hình của IDE
+.vscode/
+**/.vscode/
