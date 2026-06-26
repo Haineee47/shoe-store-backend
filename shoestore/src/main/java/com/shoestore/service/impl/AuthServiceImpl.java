@@ -67,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
                 .phone(request.getPhone())
                 .status(UserStatus.ACTIVE)
                 .provider(AuthProvider.LOCAL)
-                .emailVerified(false) // 🌟 Mặc định chưa xác thực
+                .emailVerified(false)
                 .build();
 
         user.getRoles().add(customerRole);
@@ -362,9 +362,9 @@ public class AuthServiceImpl implements AuthService {
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .fullName(user.getFullName())      // 🌟 Đúng tên fullName
-                .avatarUrl(user.getAvatarUrl())    // 🌟 Đúng tên getAvatarUrl()
-                .emailVerified(user.getEmailVerified()) // 🌟 Đúng tên getEmailVerified()
+                .fullName(user.getFullName())
+                .avatarUrl(user.getAvatarUrl())
+                .emailVerified(user.getEmailVerified())
                 // .roles(...) nếu cần
                 .build();
     }

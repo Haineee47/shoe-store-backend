@@ -1,9 +1,8 @@
 package com.shoestore.service.impl;
 
 import com.shoestore.common.enums.ErrorCode;
-import com.shoestore.dto.request.categoryManagementRequest.CategoryRequest;
-import com.shoestore.dto.response.categoryManagementResponse.CategoryResponse;
-import com.shoestore.dto.response.categoryManagementResponse.CategoryTreeResponse;
+import com.shoestore.dto.request.categoryManagementRequest.*;
+import com.shoestore.dto.response.categoryManagementResponse.*;
 import com.shoestore.entity.Category;
 import com.shoestore.exception.BusinessException;
 import com.shoestore.repository.CategoryRepository;
@@ -15,7 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,8 +25,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    public CategoryResponse createCategory(CategoryRequest request) {
-        // ✨ Tận dụng @NotBlank, không cần check null, tiến hành chuẩn hóa chuỗi
+    public AdminCategoryResponse createCategory(CreateCategoryRequest request) {
         String normalizedName = normalizeName(request.getName());
 
         if (categoryRepository.existsByNameIgnoreCase(normalizedName)) {
@@ -45,7 +43,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
                 .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0)
-                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
+                .isActive(true) // Tạo mới mặc định active
                 .build();
 
         if (request.getParentId() != null) {
@@ -54,36 +52,32 @@ public class CategoryServiceImpl implements CategoryService {
             category.setParent(parent);
         }
 
-        return mapToResponse(categoryRepository.save(category));
+        return mapToAdminResponse(categoryRepository.save(category));
     }
 
     @Override
     @Transactional
-    public CategoryResponse updateCategory(Long id, CategoryRequest request) {
+    public AdminCategoryResponse updateCategory(Long id, UpdateCategoryRequest request) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
-        // ✨ Chuẩn hóa tên khi update
-        String normalizedName = normalizeName(request.getName());
-
-        if (categoryRepository.existsByNameIgnoreCaseAndIdNot(normalizedName, id)) {
-            throw new BusinessException(ErrorCode.CATEGORY_NAME_ALREADY_EXISTS);
+        if (request.getName() != null) {
+            String normalizedName = normalizeName(request.getName());
+            if (categoryRepository.existsByNameIgnoreCaseAndIdNot(normalizedName, id)) {
+                throw new BusinessException(ErrorCode.CATEGORY_NAME_ALREADY_EXISTS);
+            }
+            category.setName(normalizedName);
         }
 
-        category.setName(normalizedName);
-        category.setDescription(request.getDescription());
-        category.setImageUrl(request.getImageUrl());
-
+        if (request.getDescription() != null) category.setDescription(request.getDescription());
+        if (request.getImageUrl() != null) category.setImageUrl(request.getImageUrl());
         if (request.getSortOrder() != null) category.setSortOrder(request.getSortOrder());
-        if (request.getIsActive() != null) category.setActive(request.getIsActive());
 
-        // ✨ Chiến lược Immutable Slug: Hoàn toàn không đụng tới trường slug tại đây khi Update
-
+        // 🛡️ INVARIANT CHECK: Chống tự liên kết chính mình & Liên kết vòng (Vấn đề 8 từ review)
         if (request.getParentId() != null) {
             if (id.equals(request.getParentId())) {
                 throw new BusinessException(ErrorCode.CATEGORY_CANNOT_BE_ITS_OWN_PARENT);
             }
-
             validateCircularReference(id, request.getParentId());
 
             Category parent = categoryRepository.findById(request.getParentId())
@@ -93,7 +87,28 @@ public class CategoryServiceImpl implements CategoryService {
             category.setParent(null);
         }
 
-        return mapToResponse(categoryRepository.save(category));
+        return mapToAdminResponse(categoryRepository.save(category));
+    }
+
+    @Override
+    @Transactional
+    public void changeStatus(Long id, Boolean active) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        // 🛡️ INVARIANT CHECK: Cascade Deactivation
+        // Nếu tắt cha -> Tự động tắt đệ quy toàn bộ cụm danh mục con để tránh dữ liệu mồ côi
+        processStatusCascade(category, active);
+        categoryRepository.save(category);
+    }
+
+    private void processStatusCascade(Category category, boolean active) {
+        category.setActive(active);
+        if (!active && category.getChildren() != null) {
+            for (Category child : category.getChildren()) {
+                processStatusCascade(child, false);
+            }
+        }
     }
 
     @Override
@@ -102,6 +117,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
+        // 🛡️ INVARIANT CHECK: Chặn xóa nếu còn danh mục con liên kết
         if (categoryRepository.existsByParentId(id)) {
             throw new BusinessException(ErrorCode.CATEGORY_HAS_CHILDREN_CANNOT_DELETE);
         }
@@ -110,106 +126,136 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    @Transactional
-    public void changeStatus(Long id, Boolean isActive) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-        category.setActive(isActive);
-        categoryRepository.save(category);
-    }
-
-    @Override
     @Transactional(readOnly = true)
-    public Page<CategoryResponse> searchCategories(String keyword, Pageable pageable) {
-        // ✨ Sửa đổi: Loại bỏ khoảng trắng đầu cuối của từ khóa tìm kiếm
+    public Page<CategorySummaryResponse> searchCategories(String keyword, Pageable pageable) {
         if (keyword == null || keyword.trim().isEmpty()) {
-            return categoryRepository.findAll(pageable).map(this::mapToResponse);
+            return categoryRepository.findAll(pageable).map(this::mapToSummaryResponse);
         }
-
         return categoryRepository.findByNameContainingIgnoreCase(keyword.trim(), pageable)
-                .map(this::mapToResponse);
+                .map(this::mapToSummaryResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CategoryResponse getCategoryByIdForAdmin(Long id) {
+    public AdminCategoryResponse getCategoryByIdForAdmin(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-        return mapToResponse(category);
+        return mapToAdminResponse(category);
     }
 
-    // --- Public Logic APIs ---
-
+    // =========================================================================
+    // ⚡ GIẢI PHÁP TIÊU DIỆT N+1 QUERY: IN-MEMORY TREE BUILDING (Vấn đề 9)
+    // =========================================================================
     @Override
     @Transactional(readOnly = true)
     public List<CategoryTreeResponse> getPublicCategoryTree() {
-        List<Category> rootCategories = categoryRepository.findByParentIsNullAndIsActiveTrueOrderBySortOrderAsc();
-        return rootCategories.stream()
-                .map(this::mapToTreeResponse)
-                .collect(Collectors.toList());
+        // 🔥 Bắn duy nhất 1 QUERY quét toàn bộ Category đang hoạt động lên RAM
+        List<Category> allActiveCategories = categoryRepository.findByIsActiveTrueOrderBySortOrderAsc();
+
+        if (allActiveCategories.isEmpty()) return Collections.emptyList();
+
+        // Map mượt mà sang cấu trúc DTO phẳng (Flat DTO) nhằm tách biệt Entity hoàn toàn khỏi RAM logic
+        List<CategoryTreeResponse> flatNodes = allActiveCategories.stream()
+                .map(c -> CategoryTreeResponse.builder()
+                        .id(c.getId())
+                        .name(c.getName())
+                        .slug(c.getSlug())
+                        .imageUrl(c.getImageUrl())
+                        .parentId(c.getParent() != null ? c.getParent().getId() : null)
+                        .children(new ArrayList<>())
+                        .build())
+                .toList();
+
+        // Đưa vào Map O(1) để tăng tốc độ tìm kiếm nút cha
+        Map<Long, CategoryTreeResponse> nodeMap = flatNodes.stream()
+                .collect(Collectors.toMap(CategoryTreeResponse::getId, node -> node));
+
+        List<CategoryTreeResponse> rootNodes = new ArrayList<>();
+
+        // 🚀 Thuật toán dựng cây 1 vòng lặp (Single Pass) chạy trên RAM: Độ phức tạp O(N)
+        for (CategoryTreeResponse node : flatNodes) {
+            if (node.getParentId() == null) {
+                rootNodes.add(node);
+            } else {
+                CategoryTreeResponse parentNode = nodeMap.get(node.getParentId());
+                if (parentNode != null) {
+                    parentNode.getChildren().add(node);
+                }
+            }
+        }
+        return rootNodes;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CategoryResponse getCategoryBySlug(String slug) {
+    public PublicCategoryResponse getCategoryBySlug(String slug) {
         Category category = categoryRepository.findBySlugAndIsActiveTrue(slug)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-        return mapToResponse(category);
+        return mapToPublicResponse(category);
     }
 
-    // --- Helper Mappers ---
+    // =========================================================================
+    // 🔄 TẦNG ĐỒNG BỘ MAPPERS - ĐẢM BẢO ENCAPSULATION
+    // =========================================================================
 
-    private CategoryTreeResponse mapToTreeResponse(Category category) {
-        return CategoryTreeResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .slug(category.getSlug())
-                .imageUrl(category.getImageUrl())
-                .children(category.getChildren().stream()
-                        .filter(Category::isActive)
-                        .map(this::mapToTreeResponse)
-                        .collect(Collectors.toList()))
-                .build();
+    private CategorySummaryResponse mapToSummaryResponse(Category category) {
+        CategorySummaryResponse dto = new CategorySummaryResponse();
+        dto.setId(category.getId());
+        dto.setName(category.getName());
+        dto.setSlug(category.getSlug());
+        dto.setActive(category.isActive());
+        dto.setSortOrder(category.getSortOrder());
+        dto.setParentName(category.getParent() != null ? category.getParent().getName() : null);
+        return dto;
     }
 
-    private CategoryResponse mapToResponse(Category category) {
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .slug(category.getSlug())
-                .description(category.getDescription())
-                .imageUrl(category.getImageUrl())
-                .sortOrder(category.getSortOrder())
-                .isActive(category.isActive())
-                .parentId(category.getParent() != null ? category.getParent().getId() : null)
-                .parentName(category.getParent() != null ? category.getParent().getName() : null)
-                .createdAt(category.getCreatedAt())
-                .updatedAt(category.getUpdatedAt())
-                .build();
+    private AdminCategoryResponse mapToAdminResponse(Category category) {
+        AdminCategoryResponse dto = new AdminCategoryResponse();
+        dto.setId(category.getId());
+        dto.setName(category.getName());
+        dto.setSlug(category.getSlug());
+        dto.setDescription(category.getDescription());
+        dto.setImageUrl(category.getImageUrl());
+        dto.setActive(category.isActive());
+        dto.setSortOrder(category.getSortOrder());
+        dto.setParentId(category.getParent() != null ? category.getParent().getId() : null);
+        dto.setParentName(category.getParent() != null ? category.getParent().getName() : null);
+        dto.setCreatedAt(category.getCreatedAt());
+        dto.setUpdatedAt(category.getUpdatedAt());
+        return dto;
     }
 
-    // ✨ Helper Method: Chuẩn hóa loại bỏ khoảng trắng thừa (Đầu, cuối và giữa các từ)
+    private PublicCategoryResponse mapToPublicResponse(Category category) {
+        PublicCategoryResponse dto = new PublicCategoryResponse();
+        dto.setId(category.getId());
+        dto.setName(category.getName());
+        dto.setSlug(category.getSlug());
+        dto.setDescription(category.getDescription());
+        dto.setParentId(category.getParent() != null ? category.getParent().getId() : null);
+        return dto;
+    }
+
     private String normalizeName(String name) {
         return name.trim().replaceAll("\\s+", " ");
     }
 
-    // Helper Method: Chống vòng lặp vô hạn cây cha con
     private void validateCircularReference(Long categoryId, Long parentId) {
-        if (parentId == null) {
-            return;
-        }
+        Long currentParentId = parentId;
+        int maxDepth = 50; // Giới hạn an toàn phòng trường hợp rác dữ liệu DB cũ
+        int depth = 0;
 
-        Long currentId = parentId;
-
-        while (currentId != null) {
-            if (currentId.equals(categoryId)) {
+        while (currentParentId != null) {
+            if (currentParentId.equals(categoryId)) {
+                throw new BusinessException(ErrorCode.CATEGORY_CIRCULAR_REFERENCE);
+            }
+            if (++depth > maxDepth) {
                 throw new BusinessException(ErrorCode.CATEGORY_CIRCULAR_REFERENCE);
             }
 
-            Category category = categoryRepository.findById(currentId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+            Category parentNode = categoryRepository.findById(currentParentId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PARENT_CATEGORY_NOT_FOUND));
 
-            currentId = category.getParent() != null ? category.getParent().getId() : null;
+            currentParentId = parentNode.getParent() != null ? parentNode.getParent().getId() : null;
         }
     }
 }

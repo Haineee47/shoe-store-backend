@@ -17,25 +17,16 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     boolean existsBySlugAndDeletedAtIsNull(String slug);
 
-    // 🌟 FIX ĐIỂM 6: Thêm kiểm tra trùng tên sản phẩm bỏ qua hoa thường (Phòng vệ chặn từ Admin)
     boolean existsByNameIgnoreCaseAndDeletedAtIsNull(String name);
 
-    // 🌟 Chuẩn bị cho Detail API công khai / Admin
     Optional<Product> findByIdAndDeletedAtIsNull(Long id);
 
     Optional<Product> findBySlugAndDeletedAtIsNull(String slug);
 
-    // 🌟 Chuẩn bị cho Soft Delete kiểm tra tồn tại nhanh
     boolean existsByIdAndDeletedAtIsNull(Long id);
 
-    // 🌟 Chuẩn bị cho Update Name: Kiểm tra trùng tên với sản phẩm khác (trừ chính nó)
-    boolean existsByNameIgnoreCaseAndIdNotAndDeletedAtIsNull(
-            String name,
-            Long id
-    );
+    boolean existsByNameIgnoreCaseAndIdNotAndDeletedAtIsNull(String name, Long id);
 
-
-    // 🌟 FIX ĐIỂM 2: Sửa lại cú pháp JPQL chuẩn bằng hàm CONCAT để Hibernate bốc dịch chính xác
     @Query("""
         SELECT COUNT(p) 
         FROM Product p 
@@ -43,8 +34,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     """)
     long countBySlugPrefix(@Param("slugPrefix") String slugPrefix);
 
-    // 🌟 Chuẩn bị cho List API phân trang mặc định luôn lọc các sản phẩm chưa xóa
-    @EntityGraph(attributePaths = {"brand", "category"})
+    @EntityGraph(
+            attributePaths = {"brand", "category"},
+            type = EntityGraph.EntityGraphType.FETCH
+    )
     Page<Product> findAll(Specification<Product> spec, Pageable pageable);
 
     @EntityGraph(attributePaths = {
@@ -56,7 +49,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @EntityGraph(attributePaths = {
             "brand",
             "category",
-
+            "images"
     })
     @Query("""
     select p
@@ -67,11 +60,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Optional<Product> findWithDetailsByIdAndDeletedAtIsNull(
             @Param("id") Long id
     );
-
     boolean existsBySlugAndIdNotAndDeletedAtIsNull(
             String slug,
             Long id
     );
-
-
 }

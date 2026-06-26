@@ -13,5 +13,6 @@ public class CategoryTreeResponse {
     private String name;
     private String slug;
     private String imageUrl; // 🌟 Bổ sung link ảnh phục vụ làm Icon Menu ngoài trang chủ
+    private Long parentId;
     private List<CategoryTreeResponse> children;
 }

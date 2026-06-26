@@ -20,7 +20,7 @@ public class ProductResponse {
     private String description;
     private String thumbnailUrl;
     private ProductStatus status;
-    private boolean isFeatured;
+    private Boolean isFeatured;
     private Integer totalStock;
 
     // SEO Info
