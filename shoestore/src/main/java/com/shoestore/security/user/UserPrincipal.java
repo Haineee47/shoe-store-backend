@@ -24,6 +24,10 @@ public class UserPrincipal implements UserDetails {
         this.user = user;
     }
 
+    public Long getId() {
+        return this.user != null ? this.user.getId() : null;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<SimpleGrantedAuthority> authorities = new HashSet<>();

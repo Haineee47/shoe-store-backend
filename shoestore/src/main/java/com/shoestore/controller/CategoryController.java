@@ -2,17 +2,20 @@ package com.shoestore.controller;
 
 import com.shoestore.common.constant.PaginationConstant;
 import com.shoestore.common.response.ApiResponse;
-import com.shoestore.dto.request.categoryManagementRequest.CategoryRequest;
-import com.shoestore.dto.response.categoryManagementResponse.CategoryResponse;
-import com.shoestore.dto.response.categoryManagementResponse.CategoryTreeResponse;
+import com.shoestore.dto.request.categoryManagementRequest.*;
+import com.shoestore.dto.response.categoryManagementResponse.*;
 import com.shoestore.service.CategoryService;
 import com.shoestore.util.PageableUtils;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,79 +23,80 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Validated
 public class CategoryController {
 
     private final CategoryService categoryService;
 
-    // ==========================================
-    // 👑 1. ENDPOINTS DÀNH RIÊNG CHO QUẢN TRỊ (ADMIN / STAFF ĐƯỢC ỦY QUYỀN)
-    // ==========================================
+    // =========================================================================
+    // 🌐 1. ENDPOINTS CÔNG KHAI - PUBLIC CLIENT
+    // =========================================================================
 
-    @PostMapping("/admin/categories")
-    @PreAuthorize("@ss.hasPermission('CATEGORY_CREATE')")
-    public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryRequest request) {
-        CategoryResponse response = categoryService.createCategory(request);
-        return ResponseEntity.ok(ApiResponse.success("Tạo danh mục mới thành công", response));
+    @GetMapping("/categories/tree")
+    public ResponseEntity<ApiResponse<List<CategoryTreeResponse>>> getPublicCategoryTree() {
+        return ResponseEntity.ok(ApiResponse.success("Lấy cấu trúc cây danh mục thành công",
+                categoryService.getPublicCategoryTree()));
     }
 
-    @PutMapping("/admin/categories/{id}")
-    @PreAuthorize("@ss.hasPermission('CATEGORY_UPDATE')")
-    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
-            @PathVariable Long id,
-            @Valid @RequestBody CategoryRequest request) {
-        CategoryResponse response = categoryService.updateCategory(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật danh mục thành công", response));
+    @GetMapping("/categories/{slug}")
+    public ResponseEntity<ApiResponse<PublicCategoryResponse>> getCategoryBySlug(@PathVariable String slug) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin danh mục thành công",
+                categoryService.getCategoryBySlug(slug)));
     }
 
-    @DeleteMapping("/admin/categories/{id}")
-    @PreAuthorize("@ss.hasPermission('CATEGORY_DELETE')")
-    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
-        categoryService.deleteCategory(id);
-        return ResponseEntity.ok(ApiResponse.success("Xóa danh mục thành công", null));
-    }
-
-    @PatchMapping("/admin/categories/{id}/status")
-    @PreAuthorize("@ss.hasPermission('CATEGORY_UPDATE')")
-    public ResponseEntity<ApiResponse<Void>> changeStatus(@PathVariable Long id, @RequestParam Boolean isActive) {
-        categoryService.changeStatus(id, isActive);
-        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái danh mục thành công", null));
-    }
+    // =========================================================================
+    // 👑 2. ENDPOINTS QUẢN TRỊ - ADMIN / STAFF
+    // =========================================================================
 
     @GetMapping("/admin/categories")
     @PreAuthorize("@ss.hasPermission('CATEGORY_VIEW')")
-    public ResponseEntity<ApiResponse<Page<CategoryResponse>>> searchCategoriesForAdmin(
+    public ResponseEntity<ApiResponse<Page<CategorySummaryResponse>>> searchCategoriesForAdmin(
             @RequestParam(required = false) String q,
-            @RequestParam(defaultValue = PaginationConstant.DEFAULT_PAGE_NUMBER) int page,
-            @RequestParam(defaultValue = PaginationConstant.DEFAULT_PAGE_SIZE) int size,
-            @RequestParam(defaultValue = "sortOrder,asc") String sort) { // Giữ sortOrder,asc cho đặc thù hiển thị thứ tự danh mục
+            @RequestParam(defaultValue = PaginationConstant.DEFAULT_PAGE_NUMBER) @Min(0) int page,
+            @RequestParam(defaultValue = PaginationConstant.DEFAULT_PAGE_SIZE) @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "sortOrder,asc") String sort) {
 
-        // Tận dụng PageableUtils để khởi tạo phân trang đồng bộ
         Pageable pageable = PageableUtils.createPageable(page, size, sort);
-
-        Page<CategoryResponse> response = categoryService.searchCategories(q, pageable);
-        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quản trị danh mục thành công", response));
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách quản trị danh mục thành công",
+                categoryService.searchCategories(q, pageable)));
     }
 
     @GetMapping("/admin/categories/{id}")
     @PreAuthorize("@ss.hasPermission('CATEGORY_VIEW')")
-    public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable Long id) {
-        CategoryResponse response = categoryService.getCategoryByIdForAdmin(id);
-        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết danh mục thành công", response));
+    public ResponseEntity<ApiResponse<AdminCategoryResponse>> getCategoryById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết danh mục thành công",
+                categoryService.getCategoryByIdForAdmin(id)));
     }
 
-    // ==========================================
-    // 🌐 2. ENDPOINTS CÔNG KHAI (Giữ nguyên - không cần Đăng nhập)
-    // ==========================================
-
-    @GetMapping("/categories/tree")
-    public ResponseEntity<ApiResponse<List<CategoryTreeResponse>>> getPublicCategoryTree() {
-        List<CategoryTreeResponse> response = categoryService.getPublicCategoryTree();
-        return ResponseEntity.ok(ApiResponse.success("Lấy cấu trúc cây danh mục thành công", response));
+    @PostMapping("/admin/categories")
+    @PreAuthorize("@ss.hasPermission('CATEGORY_CREATE')")
+    public ResponseEntity<ApiResponse<AdminCategoryResponse>> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo danh mục mới thành công", categoryService.createCategory(request)));
     }
 
-    @GetMapping("/categories/{slug}")
-    public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryBySlug(@PathVariable String slug) {
-        CategoryResponse response = categoryService.getCategoryBySlug(slug);
-        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin danh mục thành công", response));
+    @PatchMapping("/admin/categories/{id}")
+    @PreAuthorize("@ss.hasPermission('CATEGORY_UPDATE')")
+    public ResponseEntity<ApiResponse<AdminCategoryResponse>> updateCategory(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateCategoryRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật danh mục thành công",
+                categoryService.updateCategory(id, request)));
+    }
+
+    @PatchMapping("/admin/categories/{id}/status")
+    @PreAuthorize("@ss.hasPermission('CATEGORY_UPDATE')")
+    public ResponseEntity<ApiResponse<Void>> changeStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody CategoryStatusRequest request) {
+        categoryService.changeStatus(id, request.getActive());
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái danh mục thành công", null));
+    }
+
+    @DeleteMapping("/admin/categories/{id}")
+    @PreAuthorize("@ss.hasPermission('CATEGORY_DELETE')")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        categoryService.deleteCategory(id);
+        return ResponseEntity.noContent().build();
     }
 }

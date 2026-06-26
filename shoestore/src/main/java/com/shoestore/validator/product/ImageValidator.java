@@ -19,16 +19,16 @@ public class ImageValidator {
 
     public void validate(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new BusinessException(ErrorCode.FILE_EMPTY);
+            throw new BusinessException(ErrorCode.MEDIA_FILE_EMPTY);
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
+            throw new BusinessException(ErrorCode.MEDIA_FILE_TOO_LARGE);
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-            throw new BusinessException(ErrorCode.INVALID_IMAGE_TYPE);
+            throw new BusinessException(ErrorCode.MEDIA_FILE_TYPE_NOT_ALLOWED);
         }
     }
 }

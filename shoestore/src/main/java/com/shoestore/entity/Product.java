@@ -61,13 +61,9 @@ public class Product extends BaseEntity {
     @Builder.Default
     private ProductStatus status = ProductStatus.DRAFT;
 
-    @Column(name = "is_featured", nullable = false)
+    @Column(name = "is_featured", nullable = false, columnDefinition = "BIT DEFAULT 0") // Hoặc BOOLEAN DEFAULT FALSE tùy DB
     @Builder.Default
-    private boolean isFeatured = false;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer totalStock = 0;
+    private Boolean isFeatured = false;
 
     @Column(length = 150)
     private String metaTitle;
@@ -85,10 +81,6 @@ public class Product extends BaseEntity {
 
     private LocalDateTime deletedAt;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Fetch(FetchMode.SUBSELECT)
-    @Builder.Default
-    private List<ProductSku> skus = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @Fetch(FetchMode.SUBSELECT)
@@ -99,61 +91,6 @@ public class Product extends BaseEntity {
     // 🛡️ INVARIANT GUARD & BUSINESS LOGIC METHODS
     // ==========================================
 
-    /**
-     * Hàm kiểm tra tính toàn vẹn (Invariant) của Product
-     */
-    private void validateInvariants() {
-        validateActiveProduct();
-    }
-
-    /**
-     * Thay đổi trạng thái Product một cách chủ động (Thay vì dùng setter trực tiếp)
-     */
-    public void updateStatus(ProductStatus newStatus) {
-        this.status = newStatus;
-        validateInvariants(); // Chặn lỗi khi ACTIVE mà không có SKU
-    }
-
-    public void recalculateTotalStock() {
-        this.totalStock = this.skus.stream()
-                .mapToInt(ProductSku::getStockQuantity)
-                .sum();
-    }
-
-    /**
-     * Thêm lẻ 1 SKU
-     */
-    public void addSku(ProductSku sku) {
-        skus.add(sku);
-        sku.setProduct(this);
-        recalculateTotalStock();
-    }
-
-    /**
-     * Xóa lẻ 1 SKU khỏi danh sách (Dùng cho API delete lẻ SKU)
-     */
-    public void removeSku(ProductSku sku) {
-        this.skus.remove(sku);
-        sku.setProduct(null);
-        recalculateTotalStock();
-        validateInvariants(); // Chặn lỗi nếu là SKU cuối cùng bị xóa khi Product đang ACTIVE
-    }
-
-    /**
-     * Cập nhật toàn bộ danh sách SKUs (Dùng cho API updateSkus)
-     */
-    public void updateSkus(List<ProductSku> newSkus) {
-        // Clear danh sách cũ để kích hoạt orphanRemoval = true
-        this.skus.clear();
-        if (newSkus != null) {
-            newSkus.forEach(sku -> {
-                sku.setProduct(this);
-                this.skus.add(sku);
-            });
-        }
-        recalculateTotalStock();
-        validateInvariants(); // Chặn lỗi nếu request truyền lên list rỗng khi Product đang ACTIVE
-    }
 
     public void addImage(ProductImage image) {
         images.add(image);
@@ -174,26 +111,7 @@ public class Product extends BaseEntity {
         return this.deletedAt == null;
     }
 
-    public void validateActiveProduct() {
 
-        if (this.status != ProductStatus.ACTIVE) {
-            return;
-        }
-
-        boolean hasActiveSku =
-                this.skus != null
-                        &&
-                        this.skus.stream()
-                                .anyMatch(
-                                        sku -> sku.getStatus() == SkuStatus.ACTIVE
-                                );
-
-        if (!hasActiveSku) {
-            throw new BusinessException(
-                    ErrorCode.PRODUCT_HAS_NO_ACTIVE_SKU
-            );
-        }
-    }
 
     public void setPrimaryImage(ProductImage targetImage) {
         if (targetImage == null) return;
@@ -206,6 +124,21 @@ public class Product extends BaseEntity {
 
         // 3. Đồng bộ hóa tuyệt đối vào thumbnailUrl của Product cha
         this.thumbnailUrl = targetImage.getImageUrl();
+    }
+
+    // Thêm vào bên trong class Product.java
+    public void validateActiveProduct() {
+        if (this.name == null || this.name.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_PRODUCT_NAME);
+        }
+        if (this.thumbnailUrl == null || this.thumbnailUrl.isBlank()) {
+            throw new BusinessException(ErrorCode.PRODUCT_MISSING_THUMBNAIL);
+        }
+        // Thêm các điều kiện validate cấu hình khác của riêng thực thể Product nếu cần
+    }
+
+    public void archive() {
+        this.status = ProductStatus.ARCHIVED;
     }
 
 }

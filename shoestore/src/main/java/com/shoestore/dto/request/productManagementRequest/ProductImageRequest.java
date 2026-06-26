@@ -27,5 +27,5 @@ public class ProductImageRequest {
     @Min(0)
     private Integer sortOrder;
 
-    private boolean primary = false;
+    private Boolean primary = false;
 }

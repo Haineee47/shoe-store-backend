@@ -17,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @RequiredArgsConstructor
-@EnableMethodSecurity
+@EnableMethodSecurity // Kích hoạt kiểm tra quyền mức method (@PreAuthorize) tại Controller
 public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
@@ -43,9 +43,9 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // ===================================================================
-                        // 🌐 1. PUBLIC API - KHÔNG CẦN ĐĂNG NHẬP (permitAll)
+                        // 🌐 1. PUBLIC ENDPOINTS - KHÔNG CẦN ĐĂNG NHẬP (permitAll)
                         // ===================================================================
-                        // Nhóm API xác thực công khai
+                        // Nhóm API xác thực và tài khoản công khai
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",
@@ -57,14 +57,13 @@ public class SecurityConfig {
                                 "/api/v1/auth/resend-verification"
                         ).permitAll()
 
-                        // Nhóm API tài nguyên hiển thị phía Client (Khách vãng lai xem được)
+                        // Nhóm API hiển thị phía Client (Xem danh mục, thương hiệu công khai)
                         .requestMatchers(
                                 "/api/v1/categories/**",
-                                "/api/v1/brands/**",       // 🌟 MỚI: Cho phép xem thương hiệu và chi tiết thương hiệu theo slug công khai
-                                "/api/v1/admin/products/**"   // 🌟 THÊM DÒNG NÀY: Bảo vệ toàn bộ endpoint quản trị sản phẩm
+                                "/api/v1/brands/**"
                         ).permitAll()
 
-                        // Nhóm API tài liệu kỹ thuật & Hệ thống
+                        // Nhóm API tài liệu hệ thống & Swagger UI
                         .requestMatchers(
                                 "/error",
                                 "/swagger-ui/**",
@@ -72,23 +71,26 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // ===================================================================
-                        // 🔐 2. PRIVATE API - BẮT BUỘC PHẢI ĐĂNG NHẬP (authenticated)
+                        // 🔐 2. PRIVATE ENDPOINTS - BẮT BUỘC PHẢI ĐĂNG NHẬP (authenticated)
                         // ===================================================================
-                        // Nhóm API cá nhân (User phải đăng nhập mới thực hiện được)
+                        // Nhóm API cá nhân của người dùng (User/Admin/Staff)
                         .requestMatchers(
                                 "/api/v1/auth/change-password",
                                 "/api/v1/auth/me",
                                 "/api/v1/auth/logout"
                         ).authenticated()
 
-                        // Nhóm API quản trị (Chỉ mở cửa cho Admin/Staff đi qua bộ lọc Filter, quyền chi tiết check tại Controller)
+                        // 🛡️ NHÓM API QUẢN TRỊ ADMIN - BẢO VỆ CHẶT CHẼ QUA BỘ LỌC JWT FILTER
+                        // (Mọi request vào phân vùng này bắt buộc có Token hợp lệ, quyền hạn chi tiết check ở Controller)
                         .requestMatchers(
                                 "/api/v1/admin/categories/**",
-                                "/api/v1/admin/brands/**",    // 🌟 MỚI: Bảo vệ toàn bộ endpoint quản trị thương hiệu
-                                "/api/v1/admin/media/**"     // 🌟 MỚI: Bảo vệ toàn bộ endpoint upload/delete ảnh vật lý
+                                "/api/v1/admin/brands/**",
+                                "/api/v1/admin/products/**",
+                                "/api/v1/admin/media/**",
+                                "/api/v1/admin/inventory/**"
                         ).authenticated()
 
-                        // Tất cả các request còn lại chưa được chỉ định cấu hình đều phải login
+                        // Tất cả các request phát sinh ngoài luồng cấu hình trên đều bắt buộc phải login
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

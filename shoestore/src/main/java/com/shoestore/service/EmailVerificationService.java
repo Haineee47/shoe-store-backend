@@ -8,5 +8,7 @@ public interface EmailVerificationService {
 
     void verifyEmail(String token);
 
-    void resendVerificationEmail(String email);
+    String resendVerificationEmail(String email);
+
+    String getEmailByToken(String token);
 }

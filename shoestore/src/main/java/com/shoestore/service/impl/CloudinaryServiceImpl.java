@@ -44,7 +44,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
 
         } catch (IOException e) {
             log.error("Lỗi khi upload ảnh lên Cloudinary: ", e);
-            throw new BusinessException(ErrorCode.UPLOAD_FAILED); // Sử dụng lỗi chuẩn của bạn
+            throw new BusinessException(ErrorCode.MEDIA_UPLOAD_FAILED); // Sử dụng lỗi chuẩn của bạn
         }
     }
 
@@ -57,7 +57,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             }
         } catch (IOException e) {
             log.error("Lỗi khi xóa ảnh trên Cloudinary: ", e);
-            throw new BusinessException(ErrorCode.DELETE_IMAGE_FAILED); // Đổi sang ErrorCode của bạn nếu có
+            throw new BusinessException(ErrorCode.MEDIA_DELETE_FAILED); // Đổi sang ErrorCode của bạn nếu có
         }
     }
 
@@ -73,7 +73,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             log.info("Đã thực hiện xóa hàng loạt {} hình ảnh thành công.", publicIds.size());
         } catch (Exception e) {
             log.error("Lỗi khi xóa hàng loạt ảnh trên Cloudinary: ", e);
-            throw new BusinessException(ErrorCode.DELETE_IMAGE_FAILED);
+            throw new BusinessException(ErrorCode.MEDIA_DELETE_FAILED);
         }
     }
 
@@ -101,7 +101,7 @@ public class CloudinaryServiceImpl implements CloudinaryService {
                     .join();
         } catch (Exception e) {
             log.error("Lỗi khi upload hàng loạt ảnh bất đồng bộ: ", e);
-            throw new BusinessException(ErrorCode.UPLOAD_FAILED);
+            throw new BusinessException(ErrorCode.MEDIA_UPLOAD_FAILED);
         }
     }
 }

@@ -33,7 +33,7 @@ public class UpdateProductRequest {
     private Long categoryId;
 
     @Builder.Default
-    private boolean featured = false;
+    private Boolean featured = false;
 
     @Size(max = 150, message = "Meta Title không vượt quá 150 ký tự")
     private String metaTitle;

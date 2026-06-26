@@ -6,12 +6,15 @@ import com.shoestore.entity.Product;
 import com.shoestore.entity.ProductImage;
 import com.shoestore.entity.ProductSku;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
 public class ProductMapper {
 
-    public ProductResponse toResponse(Product product) {
+    public ProductResponse toResponse(Product product, List<ProductSku> skusInDb, Integer calculatedTotalStock) {
         if (product == null) return null;
 
         return ProductResponse.builder()
@@ -22,8 +25,11 @@ public class ProductMapper {
                 .description(product.getDescription())
                 .thumbnailUrl(product.getThumbnailUrl())
                 .status(product.getStatus())
-                .isFeatured(product.isFeatured())
-                .totalStock(product.getTotalStock())
+                .isFeatured(product.getIsFeatured() != null ? product.getIsFeatured() : false)
+
+                // 🌟 SỬA TẠI ĐÂY: Lấy giá trị tính toán động truyền từ Service vào, không dùng product.getTotalStock()
+                .totalStock(calculatedTotalStock != null ? calculatedTotalStock : 0)
+
                 .metaTitle(product.getMetaTitle())
                 .metaDescription(product.getMetaDescription())
                 .brandId(product.getBrand() != null ? product.getBrand().getId() : null)
@@ -32,12 +38,16 @@ public class ProductMapper {
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
-                .skus(product.getSkus() != null ? product.getSkus().stream().map(this::toSkuResponse).collect(Collectors.toList()) : null)
-                .images(product.getImages() != null ? product.getImages().stream().map(this::toImageResponse).collect(Collectors.toList()) : null)
+
+                // 🌟 SỬA TẠI ĐÂY: Ánh xạ từ danh sách SKU độc lập do Service truyền vào, ngắt hoàn toàn product.getSkus()
+                .skus(skusInDb != null ? skusInDb.stream().map(this::toSkuResponse).collect(Collectors.toList()) : new ArrayList<>())
+
+                // (Giữ nguyên) Bản thân ảnh phụ vẫn nằm trong Aggregate Product nên vẫn dùng trực tiếp được
+                .images(product.getImages() != null ? product.getImages().stream().map(this::toImageResponse).collect(Collectors.toList()) : new ArrayList<>())
                 .build();
     }
 
-    private ProductResponse.SkuResponse toSkuResponse(ProductSku sku) {
+    public ProductResponse.SkuResponse toSkuResponse(ProductSku sku) {
         if (sku == null) return null;
         return ProductResponse.SkuResponse.builder()
                 .id(sku.getId())
@@ -69,8 +79,7 @@ public class ProductMapper {
                 .build();
     }
 
-    public ProductSummaryResponse toSummaryResponse(Product product) {
-
+    public ProductSummaryResponse toSummaryResponse(Product product, Integer calculatedTotalStock) {
         if (product == null) {
             return null;
         }
@@ -81,28 +90,15 @@ public class ProductMapper {
                 .slug(product.getSlug())
                 .thumbnailUrl(product.getThumbnailUrl())
                 .status(product.getStatus())
-                .isFeatured(product.isFeatured())
-                .totalStock(product.getTotalStock())
-                .brandId(
-                        product.getBrand() != null
-                                ? product.getBrand().getId()
-                                : null
-                )
-                .brandName(
-                        product.getBrand() != null
-                                ? product.getBrand().getName()
-                                : null
-                )
-                .categoryId(
-                        product.getCategory() != null
-                                ? product.getCategory().getId()
-                                : null
-                )
-                .categoryName(
-                        product.getCategory() != null
-                                ? product.getCategory().getName()
-                                : null
-                )
+                .isFeatured(product.getIsFeatured() != null ? product.getIsFeatured() : false)
+
+                // 🌟 FIX TẠI ĐÂY: Dùng giá trị truyền vào thay vì gọi từ entity Product
+                .totalStock(calculatedTotalStock != null ? calculatedTotalStock : 0)
+
+                .brandId(product.getBrand() != null ? product.getBrand().getId() : null)
+                .brandName(product.getBrand() != null ? product.getBrand().getName() : null)
+                .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
+                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .createdAt(product.getCreatedAt())
                 .build();
     }

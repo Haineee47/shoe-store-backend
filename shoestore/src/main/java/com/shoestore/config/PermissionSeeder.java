@@ -23,31 +23,25 @@ public class PermissionSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        log.info("🚀 [PermissionSeeder] Bắt đầu kiểm tra và tự động đồng bộ quyền hệ thống...");
+        log.info("[PermissionSeeder] Starting system permission check and auto-synchronization...");
 
-        // Tối ưu hiệu năng bằng cách dùng EnumMap (Dành riêng cho Key là Enum trong Java)
         Map<PermissionName, String> permissionsToSeed = new EnumMap<>(PermissionName.class);
 
-        // 🌟 CATEGORY MANAGEMENT PERMISSIONS (Phase 2.1)
-        // Lưu ý: Đảm bảo các giá trị CATEGORY_CREATE, CATEGORY_VIEW... đã được khai báo trong Enum PermissionName của bạn
-        permissionsToSeed.put(PermissionName.CATEGORY_CREATE, "Quyền tạo mới danh mục sản phẩm");
-        permissionsToSeed.put(PermissionName.CATEGORY_VIEW, "Quyền xem danh sách và chi tiết danh mục quản trị");
-        permissionsToSeed.put(PermissionName.CATEGORY_UPDATE, "Quyền cập nhật thông tin và trạng thái danh mục");
-        permissionsToSeed.put(PermissionName.CATEGORY_DELETE, "Quyền xóa danh mục khỏi hệ thống");
+        permissionsToSeed.put(PermissionName.CATEGORY_CREATE, "Create product category permission");
+        permissionsToSeed.put(PermissionName.CATEGORY_VIEW, "View admin category list and details permission");
+        permissionsToSeed.put(PermissionName.CATEGORY_UPDATE, "Update category information and status permission");
+        permissionsToSeed.put(PermissionName.CATEGORY_DELETE, "Delete category from system permission");
 
-        // 🌟 BRAND MANAGEMENT PERMISSIONS (Phase 2.2)
-        permissionsToSeed.put(PermissionName.BRAND_CREATE, "Quyền tạo mới thương hiệu");
-        permissionsToSeed.put(PermissionName.BRAND_VIEW, "Quyền xem danh sách và chi tiết thương hiệu quản trị");
-        permissionsToSeed.put(PermissionName.BRAND_UPDATE, "Quyền cập nhật thông tin và trạng thái thương hiệu");
-        permissionsToSeed.put(PermissionName.BRAND_DELETE, "Quyền xóa thương hiệu khỏi hệ thống");
+        permissionsToSeed.put(PermissionName.BRAND_CREATE, "Create brand permission");
+        permissionsToSeed.put(PermissionName.BRAND_VIEW, "View admin brand list and details permission");
+        permissionsToSeed.put(PermissionName.BRAND_UPDATE, "Update brand information and status permission");
+        permissionsToSeed.put(PermissionName.BRAND_DELETE, "Delete brand from system permission");
 
-        // 🌟 MEDIA MANAGEMENT PERMISSIONS (Sẵn sàng đón đầu Phase 2.25)
-        permissionsToSeed.put(PermissionName.MEDIA_UPLOAD, "Quyền tải lên hình ảnh/tài liệu lên hệ thống");
-        permissionsToSeed.put(PermissionName.MEDIA_DELETE, "Quyền xóa hình ảnh/tài liệu khỏi hệ thống");
+        permissionsToSeed.put(PermissionName.MEDIA_UPLOAD, "Upload images/documents to system permission");
+        permissionsToSeed.put(PermissionName.MEDIA_DELETE, "Delete images/documents from system permission");
 
         int newlyCreatedCount = 0;
 
-        // Vòng lặp Idempotent kiểm tra dựa trên Enum Key
         for (Map.Entry<PermissionName, String> entry : permissionsToSeed.entrySet()) {
             PermissionName pName = entry.getKey();
             String description = entry.getValue();
@@ -60,14 +54,14 @@ public class PermissionSeeder implements ApplicationRunner {
 
                 permissionRepository.save(permission);
                 newlyCreatedCount++;
-                log.info("➕ Đã bổ sung quyền mới thành công: [{}]", pName.name());
+                log.info("[PermissionSeeder] ➕ Successfully added new permission: [{}]", pName.name());
             }
         }
 
         if (newlyCreatedCount > 0) {
-            log.info("✅ [PermissionSeeder] Hoàn thành! Đã tự động thêm mới {} quyền vào Database.", newlyCreatedCount);
+            log.info("[PermissionSeeder] ✅ Completed! Automatically added {} new permissions to the database.", newlyCreatedCount);
         } else {
-            log.info("⚡ [PermissionSeeder] Dữ liệu quyền đã đồng bộ đầy đủ từ Enum. Không cần thêm mới.");
+            log.info("[PermissionSeeder] All permissions are already fully synchronized from Enum. No seeding required.");
         }
     }
 }
