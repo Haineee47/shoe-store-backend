@@ -6,6 +6,11 @@ spring:
   main:
     banner-mode: "off"
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
+
 logging:
   level:
     root: WARN
