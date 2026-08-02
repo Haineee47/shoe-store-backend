@@ -24,8 +24,16 @@ Backend REST API for a production-oriented shoe store application.
 
 ## Project Status
 
-Phase 1 — Project Bootstrap & Development Foundation.
+Phase 1.2 — Spring Boot Project Bootstrap.
 
 ## Build
 
 mvnw.cmd clean verify
+
+--------
+
+Bổ sung phần chạy local:
+
+## Run Locally
+
+mvnw.cmd spring-boot:run
