@@ -24,7 +24,7 @@ Backend REST API for a production-oriented shoe store application.
 
 ## Project Status
 
-Phase 1.4 — MySQL Local Infrastructure.
+Phase 1.6 — Persistence Connectivity Verification.
 
 ## Build
 
@@ -96,3 +96,27 @@ docker compose down
 Destructive local reset
 
 docker compose down -v
+
+-----------
+
+## Persistence
+
+The application uses:
+
+- Spring Data JPA
+- Hibernate ORM
+- HikariCP
+- MySQL Connector/J
+- Flyway
+
+Flyway is the exclusive owner of database schema changes.
+
+Hibernate must not create, update, or delete schema objects.
+
+Runtime schema validation uses:
+
+```yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate

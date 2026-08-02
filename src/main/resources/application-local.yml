@@ -22,8 +22,19 @@ spring:
     validate-on-migrate: true
     clean-disabled: true
 
+  jpa:
+    open-in-view: false
+
+    hibernate:
+      ddl-auto: validate
+
+    properties:
+      hibernate:
+        format_sql: true
+
 logging:
   level:
     root: INFO
     com.shoestore: DEBUG
     org.flywaydb: INFO
+    org.hibernate.SQL: DEBUG
