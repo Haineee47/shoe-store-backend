@@ -24,7 +24,7 @@ Backend REST API for a production-oriented shoe store application.
 
 ## Project Status
 
-Phase 1.6 — Persistence Connectivity Verification.
+Phase 1.7 — Testing Foundation.
 
 ## Build
 
@@ -120,3 +120,22 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+
+-----------
+
+## Integration Testing
+
+Persistence integration tests use MySQL 8.4.5 through Testcontainers.
+
+The tests do not depend on:
+
+- the local Docker Compose MySQL service;
+- port `3307`;
+- `.env`;
+- a pre-existing database;
+- H2 or another in-memory database.
+
+Run all tests:
+
+```bat
+mvnw.cmd clean test
