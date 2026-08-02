@@ -1,3 +1,6 @@
 spring:
   application:
     name: shoe-store-backend
+
+  profiles:
+    default: none

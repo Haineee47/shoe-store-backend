@@ -1,0 +1,12 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  main:
+    banner-mode: "off"
+
+logging:
+  level:
+    root: INFO
+    com.shoestore: INFO

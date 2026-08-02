@@ -37,3 +37,19 @@ Bổ sung phần chạy local:
 ## Run Locally
 
 mvnw.cmd spring-boot:run
+
+------------
+
+## Runtime Profiles
+
+The application supports the following runtime profiles:
+
+- `local` — local development
+- `test` — automated testing
+- `prod` — production
+
+No runtime profile is hardcoded in the application artifact.
+
+### Run with the local profile
+
+mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
