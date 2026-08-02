@@ -24,8 +24,16 @@
 
     <properties>
         <java.version>21</java.version>
+
+        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.parameters>true</maven.compiler.parameters>
+        <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
+        <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
     </properties>
 
     <dependencies>
@@ -85,6 +93,79 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${maven-enforcer-plugin.version}</version>
+
+                <executions>
+                    <execution>
+                        <id>enforce-build-baseline</id>
+
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+
+                        <configuration>
+                            <fail>true</fail>
+
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>[3.9.16]</version>
+                                    <message>
+                                        This project requires Apache Maven 3.9.16.
+                                        Use the committed Maven Wrapper: mvnw.cmd
+                                    </message>
+                                </requireMavenVersion>
+
+                                <requireJavaVersion>
+                                    <version>[21.0.6,21.0.7)</version>
+                                    <display>true</display>
+                                    <message>
+                                        This project requires Oracle JDK 21.0.6.
+                                    </message>
+                                </requireJavaVersion>
+
+                                <requireJavaVendor>
+                                    <includes>
+                                        <include>Oracle Corporation</include>
+                                    </includes>
+                                    <message>
+                                        This project requires Oracle JDK according to the locked
+                                        technology baseline.
+                                    </message>
+                                </requireJavaVendor>
+
+                                <banDuplicatePomDependencyVersions>
+                                    <message>
+                                        Duplicate dependency declarations are not allowed.
+                                    </message>
+                                </banDuplicatePomDependencyVersions>
+
+                                <banDynamicVersions>
+                                    <message>
+                                        Dynamic, LATEST, RELEASE, version-range and SNAPSHOT
+                                        dependency versions are not allowed.
+                                    </message>
+                                </banDynamicVersions>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                    <parameters>${maven.compiler.parameters}</parameters>
+                    <showWarnings>${maven.compiler.showWarnings}</showWarnings>
+                    <failOnWarning>${maven.compiler.failOnWarning}</failOnWarning>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -24,7 +24,7 @@ Backend REST API for a production-oriented shoe store application.
 
 ## Project Status
 
-Phase 1.7 — Testing Foundation.
+Phase 1.8 — Code Quality & Build Enforcement.
 
 ## Build
 
@@ -139,3 +139,20 @@ Run all tests:
 
 ```bat
 mvnw.cmd clean test
+
+
+-------------------
+
+## Build Enforcement
+
+The Maven build enforces the locked project toolchain:
+
+- Apache Maven 3.9.16
+- Oracle JDK 21.0.6
+- Java release 21
+- UTF-8 source and reporting encoding
+
+Always use the committed Maven Wrapper:
+
+```bat
+mvnw.cmd clean verify
