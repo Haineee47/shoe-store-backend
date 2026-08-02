@@ -10,6 +10,9 @@
 *.json text eol=lf
 *.sh text eol=lf
 
+mvnw text eol=lf
+mvnw.cmd text eol=crlf
+
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
