@@ -24,7 +24,7 @@ Backend REST API for a production-oriented shoe store application.
 
 ## Project Status
 
-Phase 1.8 — Code Quality & Build Enforcement.
+Phase 1.9 — Continuous Integration Foundation.
 
 ## Build
 
@@ -156,3 +156,25 @@ Always use the committed Maven Wrapper:
 
 ```bat
 mvnw.cmd clean verify
+
+--------------
+
+## Continuous Integration
+
+GitHub Actions runs the full backend verification pipeline on:
+
+- pushes to `main`;
+- pull requests targeting `main`;
+- manual workflow dispatches.
+
+The CI environment uses:
+
+- Ubuntu GitHub-hosted runner;
+- Oracle JDK 21.0.6;
+- Maven Wrapper 3.9.16;
+- MySQL 8.4.5 through Testcontainers.
+
+The main CI command is:
+
+```bash
+./mvnw --batch-mode --no-transfer-progress clean verify
