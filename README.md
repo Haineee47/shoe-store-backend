@@ -24,7 +24,7 @@ Backend REST API for a production-oriented shoe store application.
 
 ## Project Status
 
-Phase 1.2 — Spring Boot Project Bootstrap.
+Phase 1.4 — MySQL Local Infrastructure.
 
 ## Build
 
@@ -53,3 +53,46 @@ No runtime profile is hardcoded in the application artifact.
 ### Run with the local profile
 
 mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+
+----------
+
+## Local MySQL Infrastructure
+
+The local database runs in Docker using MySQL Community Server 8.4.5.
+
+### Prerequisites
+
+- Docker Desktop
+- Docker Compose v2
+
+### Environment setup
+
+Create the local environment file:
+
+copy .env.example .env
+
+Start MySQL
+
+docker compose up -d mysql
+
+Check status
+
+docker compose ps
+
+The MySQL service must report a healthy status.
+
+View logs
+
+docker compose logs --tail=100 mysql
+
+Stop MySQL
+
+docker compose stop mysql
+
+Remove containers while preserving data
+
+docker compose down
+
+Destructive local reset
+
+docker compose down -v
