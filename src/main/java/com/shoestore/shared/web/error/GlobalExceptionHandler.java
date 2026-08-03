@@ -3,10 +3,10 @@ package com.shoestore.shared.web.error;
 import com.shoestore.shared.application.error.ApplicationException;
 import com.shoestore.shared.application.error.CommonErrorCode;
 import com.shoestore.shared.application.error.ErrorCode;
+import com.shoestore.shared.web.correlation.RequestCorrelation;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -20,7 +20,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Translates application and web exceptions into the public HTTP error
@@ -31,9 +30,6 @@ import java.util.UUID;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    public static final String CORRELATION_ID_HEADER =
-            "X-Correlation-ID";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(GlobalExceptionHandler.class);
@@ -53,7 +49,8 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         HttpStatus status = resolveStatus(exception.getErrorCode());
-        String correlationId = resolveCorrelationId(request);
+        String correlationId =
+                RequestCorrelation.resolveOrCreate(request);
 
         if (status.is5xxServerError()) {
             LOGGER.error(
@@ -82,7 +79,8 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException exception,
             HttpServletRequest request
     ) {
-        String correlationId = resolveCorrelationId(request);
+        String correlationId =
+                RequestCorrelation.resolveOrCreate(request);
 
         List<FieldViolation> violations =
                 exception.getBindingResult()
@@ -121,7 +119,8 @@ public class GlobalExceptionHandler {
             HandlerMethodValidationException exception,
             HttpServletRequest request
     ) {
-        String correlationId = resolveCorrelationId(request);
+        String correlationId =
+                RequestCorrelation.resolveOrCreate(request);
 
         ErrorResponse response = ErrorResponse.of(
                 Instant.now(),
@@ -145,7 +144,8 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException exception,
             HttpServletRequest request
     ) {
-        String correlationId = resolveCorrelationId(request);
+        String correlationId =
+                RequestCorrelation.resolveOrCreate(request);
 
         ErrorResponse response = ErrorResponse.of(
                 Instant.now(),
@@ -172,7 +172,8 @@ public class GlobalExceptionHandler {
             Exception exception,
             HttpServletRequest request
     ) {
-        String correlationId = resolveCorrelationId(request);
+        String correlationId =
+                RequestCorrelation.resolveOrCreate(request);
 
         ErrorResponse response = ErrorResponse.of(
                 Instant.now(),
@@ -196,7 +197,8 @@ public class GlobalExceptionHandler {
             Exception exception,
             HttpServletRequest request
     ) {
-        String correlationId = resolveCorrelationId(request);
+        String correlationId =
+                RequestCorrelation.resolveOrCreate(request);
 
         LOGGER.error(
                 "Unexpected request failure. correlationId={}",
@@ -227,7 +229,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(status)
                 .header(
-                        CORRELATION_ID_HEADER,
+                        RequestCorrelation.HEADER_NAME,
                         correlationId
                 )
                 .body(body);
@@ -258,32 +260,5 @@ public class GlobalExceptionHandler {
         }
 
         return message;
-    }
-
-    private static String resolveCorrelationId(
-            HttpServletRequest request
-    ) {
-        String candidate = request.getHeader(
-                CORRELATION_ID_HEADER
-        );
-
-        if (isValidUuid(candidate)) {
-            return candidate;
-        }
-
-        return UUID.randomUUID().toString();
-    }
-
-    private static boolean isValidUuid(String value) {
-        if (value == null || value.isBlank()) {
-            return false;
-        }
-
-        try {
-            return UUID.fromString(value).toString()
-                    .equalsIgnoreCase(value);
-        } catch (IllegalArgumentException exception) {
-            return false;
-        }
     }
 }

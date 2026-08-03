@@ -2,6 +2,8 @@ package com.shoestore.shared.web.error;
 
 import com.shoestore.shared.application.error.ApplicationException;
 import com.shoestore.shared.application.error.CommonErrorCode;
+import com.shoestore.shared.web.correlation.RequestCorrelation;
+import com.shoestore.shared.web.correlation.RequestCorrelationFilter;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -44,6 +46,7 @@ class GlobalExceptionHandlerTest {
                 .setControllerAdvice(
                         new GlobalExceptionHandler()
                 )
+                .addFilters(new RequestCorrelationFilter())
                 .setValidator(validator)
                 .build();
     }
@@ -54,15 +57,13 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(
                         get("/test/application-invalid")
                                 .header(
-                                        GlobalExceptionHandler
-                                                .CORRELATION_ID_HEADER,
+                                        RequestCorrelation.HEADER_NAME,
                                         CORRELATION_ID
                                 )
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(header().string(
-                        GlobalExceptionHandler
-                                .CORRELATION_ID_HEADER,
+                        RequestCorrelation.HEADER_NAME,
                         CORRELATION_ID
                 ))
                 .andExpect(jsonPath("$.status").value(400))
@@ -88,8 +89,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(
                         get("/test/application-internal")
                                 .header(
-                                        GlobalExceptionHandler
-                                                .CORRELATION_ID_HEADER,
+                                        RequestCorrelation.HEADER_NAME,
                                         CORRELATION_ID
                                 )
                 )
@@ -114,8 +114,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(
                         post("/test/validation")
                                 .header(
-                                        GlobalExceptionHandler
-                                                .CORRELATION_ID_HEADER,
+                                        RequestCorrelation.HEADER_NAME,
                                         CORRELATION_ID
                                 )
                                 .contentType(
@@ -153,8 +152,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(
                         post("/test/validation")
                                 .header(
-                                        GlobalExceptionHandler
-                                                .CORRELATION_ID_HEADER,
+                                        RequestCorrelation.HEADER_NAME,
                                         CORRELATION_ID
                                 )
                                 .contentType(
@@ -183,8 +181,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(
                         get("/test/parameter")
                                 .header(
-                                        GlobalExceptionHandler
-                                                .CORRELATION_ID_HEADER,
+                                        RequestCorrelation.HEADER_NAME,
                                         CORRELATION_ID
                                 )
                 )
@@ -204,8 +201,7 @@ class GlobalExceptionHandlerTest {
                         get("/test/parameter")
                                 .param("page", "not-a-number")
                                 .header(
-                                        GlobalExceptionHandler
-                                                .CORRELATION_ID_HEADER,
+                                        RequestCorrelation.HEADER_NAME,
                                         CORRELATION_ID
                                 )
                 )
@@ -224,8 +220,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(
                         get("/test/unexpected")
                                 .header(
-                                        GlobalExceptionHandler
-                                                .CORRELATION_ID_HEADER,
+                                        RequestCorrelation.HEADER_NAME,
                                         CORRELATION_ID
                                 )
                 )
@@ -249,8 +244,7 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/test/application-invalid"))
                 .andExpect(status().isBadRequest())
                 .andExpect(header().string(
-                        GlobalExceptionHandler
-                                .CORRELATION_ID_HEADER,
+                        RequestCorrelation.HEADER_NAME,
                         matchesPattern(
                                 "^[0-9a-fA-F]{8}-"
                                         + "[0-9a-fA-F]{4}-"
@@ -275,15 +269,13 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(
                         get("/test/application-invalid")
                                 .header(
-                                        GlobalExceptionHandler
-                                                .CORRELATION_ID_HEADER,
+                                        RequestCorrelation.HEADER_NAME,
                                         "not-a-valid-correlation-id"
                                 )
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(header().string(
-                        GlobalExceptionHandler
-                                .CORRELATION_ID_HEADER,
+                        RequestCorrelation.HEADER_NAME,
                         org.hamcrest.Matchers.not(
                                 "not-a-valid-correlation-id"
                         )
@@ -300,27 +292,53 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void generatedCorrelationIdShouldBeValidUuid()
-            throws Exception {
-        String correlationId = mockMvc.perform(
+                    throws Exception {
+            String correlationId = mockMvc.perform(
+                            get("/test/application-invalid"))
+                            .andReturn()
+                            .getResponse()
+                            .getHeader(
+                                            RequestCorrelation.HEADER_NAME);
+
+            org.assertj.core.api.Assertions
+                            .assertThat(correlationId)
+                            .isNotNull();
+
+            org.assertj.core.api.Assertions
+                            .assertThatNoException()
+                            .isThrownBy(() -> UUID.fromString(correlationId));
+    }
+
+    @Test
+        void filterAndErrorBodyShouldUseSameCorrelationId()
+                throws Exception {
+        String responseHeader = mockMvc.perform(
                         get("/test/application-invalid")
                 )
+                .andExpect(status().isBadRequest())
                 .andReturn()
                 .getResponse()
-                .getHeader(
-                        GlobalExceptionHandler
-                                .CORRELATION_ID_HEADER
-                );
+                .getHeader(RequestCorrelation.HEADER_NAME);
 
         org.assertj.core.api.Assertions
-                .assertThat(correlationId)
-                .isNotNull();
+                .assertThat(responseHeader)
+                .isNotBlank();
 
-        org.assertj.core.api.Assertions
-                .assertThatNoException()
-                .isThrownBy(() ->
-                        UUID.fromString(correlationId)
-                );
-    }
+        mockMvc.perform(
+                        get("/test/application-invalid")
+                                .header(
+                                        RequestCorrelation.HEADER_NAME,
+                                        CORRELATION_ID
+                                )
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(header().string(
+                        RequestCorrelation.HEADER_NAME,
+                        CORRELATION_ID
+                ))
+                .andExpect(jsonPath("$.correlationId")
+                        .value(CORRELATION_ID));
+        }
 
     @RestController
     static class TestController {
