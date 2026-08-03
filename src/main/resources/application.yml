@@ -4,3 +4,7 @@ spring:
 
   profiles:
     default: none
+
+logging:
+  pattern:
+    level: "correlationId=%X{correlationId:-none} %5p"
