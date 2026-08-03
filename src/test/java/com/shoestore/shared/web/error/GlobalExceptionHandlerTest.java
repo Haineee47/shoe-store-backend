@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.matchesPattern;
@@ -33,6 +36,12 @@ class GlobalExceptionHandlerTest {
     private static final String CORRELATION_ID =
             "6ae2d8b2-94fe-460b-ab14-b73209197542";
 
+    private static final Instant FIXED_INSTANT =
+            Instant.parse("2026-08-03T08:00:00Z");
+
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
+
     private MockMvc mockMvc;
     private LocalValidatorFactoryBean validator;
 
@@ -44,7 +53,7 @@ class GlobalExceptionHandlerTest {
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new TestController())
                 .setControllerAdvice(
-                        new GlobalExceptionHandler()
+                        new GlobalExceptionHandler(FIXED_CLOCK)
                 )
                 .addFilters(new RequestCorrelationFilter())
                 .setValidator(validator)
@@ -80,8 +89,10 @@ class GlobalExceptionHandlerTest {
                         CORRELATION_ID
                 ))
                 .andExpect(jsonPath("$.violations").isEmpty())
-                .andExpect(jsonPath("$.timestamp").exists());
-    }
+                .andExpect(jsonPath("$.timestamp").value(
+                        "2026-08-03T08:00:00Z"
+                ));
+                }
 
     @Test
     void shouldHideInternalApplicationExceptionMessage()

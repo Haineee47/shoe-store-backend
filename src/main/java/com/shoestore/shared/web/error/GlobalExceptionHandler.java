@@ -17,9 +17,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Translates application and web exceptions into the public HTTP error
@@ -43,12 +45,22 @@ public class GlobalExceptionHandler {
     private static final String INVALID_PARAMETER_MESSAGE =
             "A request parameter is missing or invalid.";
 
+    private final Clock clock;
+
+    public GlobalExceptionHandler(Clock clock) {
+        this.clock = Objects.requireNonNull(
+                clock,
+                "clock must not be null"
+        );
+    }
+
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<ErrorResponse> handleApplicationException(
             ApplicationException exception,
             HttpServletRequest request
     ) {
         HttpStatus status = resolveStatus(exception.getErrorCode());
+
         String correlationId =
                 RequestCorrelation.resolveOrCreate(request);
 
@@ -62,7 +74,7 @@ public class GlobalExceptionHandler {
         }
 
         ErrorResponse response = ErrorResponse.of(
-                Instant.now(),
+                currentInstant(),
                 status.value(),
                 exception.getErrorCode(),
                 safeApplicationMessage(exception, status),
@@ -98,7 +110,7 @@ public class GlobalExceptionHandler {
                         .toList();
 
         ErrorResponse response = ErrorResponse.of(
-                Instant.now(),
+                currentInstant(),
                 HttpStatus.BAD_REQUEST.value(),
                 CommonErrorCode.INVALID_REQUEST,
                 VALIDATION_FAILED_MESSAGE,
@@ -123,7 +135,7 @@ public class GlobalExceptionHandler {
                 RequestCorrelation.resolveOrCreate(request);
 
         ErrorResponse response = ErrorResponse.of(
-                Instant.now(),
+                currentInstant(),
                 HttpStatus.BAD_REQUEST.value(),
                 CommonErrorCode.INVALID_REQUEST,
                 VALIDATION_FAILED_MESSAGE,
@@ -148,7 +160,7 @@ public class GlobalExceptionHandler {
                 RequestCorrelation.resolveOrCreate(request);
 
         ErrorResponse response = ErrorResponse.of(
-                Instant.now(),
+                currentInstant(),
                 HttpStatus.BAD_REQUEST.value(),
                 CommonErrorCode.INVALID_REQUEST,
                 MALFORMED_BODY_MESSAGE,
@@ -176,7 +188,7 @@ public class GlobalExceptionHandler {
                 RequestCorrelation.resolveOrCreate(request);
 
         ErrorResponse response = ErrorResponse.of(
-                Instant.now(),
+                currentInstant(),
                 HttpStatus.BAD_REQUEST.value(),
                 CommonErrorCode.INVALID_REQUEST,
                 INVALID_PARAMETER_MESSAGE,
@@ -207,7 +219,7 @@ public class GlobalExceptionHandler {
         );
 
         ErrorResponse response = ErrorResponse.of(
-                Instant.now(),
+                currentInstant(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 CommonErrorCode.INTERNAL_ERROR,
                 request.getRequestURI(),
@@ -219,6 +231,10 @@ public class GlobalExceptionHandler {
                 correlationId,
                 response
         );
+    }
+
+    private Instant currentInstant() {
+        return clock.instant();
     }
 
     private static ResponseEntity<ErrorResponse> response(
